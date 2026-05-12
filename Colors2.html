@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level 1: The Sunny Day (Voice Edition)</title>
+    <style>
+        :root {
+            --sky-color: #808080;
+            --sun-color: #bebebe;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial Rounded MT Bold', sans-serif;
+            background-color: var(--sky-color);
+            transition: background-color 1.5s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* The Sun */
+        #sun-container {
+            position: relative;
+            margin-top: 50px;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #sun {
+            width: 150px;
+            height: 150px;
+            background-color: var(--sun-color);
+            border-radius: 50%;
+            transition: all 0.5s ease;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+
+        #face { font-size: 50px; }
+        #sunglasses { display: none; position: absolute; top: 40px; font-size: 60px; }
+
+        /* UI Elements */
+        #message-box {
+            text-align: center;
+            color: white;
+            margin: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 15px;
+            max-width: 80%;
+            z-index: 10;
+        }
+
+        #ui-layer {
+            position: absolute;
+            bottom: 40px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .bucket {
+            width: 90px;
+            height: 110px;
+            cursor: pointer;
+            border-radius: 5px 5px 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: transform 0.2s;
+            border: 4px solid #333;
+        }
+
+        .red { background-color: #ff4d4d; color: white; }
+        .blue { background-color: #4d94ff; color: white; }
+        .yellow { background-color: #ffd700; color: #333; }
+
+        /* Microphone Button */
+        #mic-btn {
+            background: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            margin-top: 10px;
+            display: none; /* Shown during wait phase */
+        }
+
+        .recording {
+            background: #ff4d4d !important;
+            animation: pulse 1s infinite;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Animation */
+        .splat-effect {
+            animation: splat-anim 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes splat-anim {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.8); box-shadow: 0 0 120px #ffd700; }
+            100% { transform: scale(1.3); }
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="sun-container">
+        <div id="sun">
+            <div id="face">☹️</div>
+            <div id="sunglasses">😎</div>
+        </div>
+    </div>
+
+    <div id="message-box">
+        <h2 id="prompt-text">The Sun is cold and gray! <br> What color makes the Sun warm and bright?</h2>
+        <p id="sub-text">Tap a paint bucket to start!</p>
+        <button id="mic-btn" onclick="startListening()">🎤</button>
+    </div>
+
+    <div id="ui-layer">
+        <div class="bucket red" onclick="alert('Brrr! Red is warm, but the Sun needs Yellow!')">RED</div>
+        <div class="bucket blue" onclick="alert('Blue is for rain! Try a sunnier color!')">BLUE</div>
+        <div class="bucket yellow" onclick="preparePhase()">YELLOW</div>
+    </div>
+
+    <audio id="splat-sound" src="https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3"></audio>
+
+    <script>
+        const sun = document.getElementById('sun');
+        const face = document.getElementById('face');
+        const glasses = document.getElementById('sunglasses');
+        const promptText = document.getElementById('prompt-text');
+        const subText = document.getElementById('sub-text');
+        const micBtn = document.getElementById('mic-btn');
+        const splatSound = document.getElementById('splat-sound');
+
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+        if (recognition) {
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase();
+                console.log("Heard:", transcript);
+                if (transcript.includes('yellow')) {
+                    triggerSplat();
+                } else {
+                    subText.innerHTML = "I heard '" + transcript + "'... try shouting 'YELLOW'!";
+                    micBtn.classList.remove('recording');
+                }
+            };
+
+            recognition.onerror = () => {
+                micBtn.classList.remove('recording');
+                subText.innerHTML = "Keep rubbing your hands! Try the mic again.";
+            };
+        }
+
+        function preparePhase() {
+            document.getElementById('ui-layer').classList.add('hidden');
+            promptText.innerHTML = "YELLOW! Magic choice!";
+            subText.innerHTML = "Rub your hands to warm up the paint... <br>Then tap the mic and shout <b>YELLOW!</b>";
+            micBtn.style.display = "inline-block";
+        }
+
+        function startListening() {
+            if (!recognition) {
+                alert("Speech recognition is not supported in this browser. Try Chrome!");
+                triggerSplat(); // Fallback
+                return;
+            }
+            micBtn.classList.add('recording');
+            recognition.start();
+        }
+
+        function triggerSplat() {
+            micBtn.style.display = "none";
+            splatSound.play();
+            
+            // Visual Splat
+            sun.classList.add('splat-effect');
+            document.body.style.backgroundColor = "#87CEEB"; 
+            sun.style.backgroundColor = "#ffd700";
+            
+            // Face Swap
+            face.style.display = 'none';
+            glasses.style.display = 'block';
+            
+            promptText.innerHTML = "SPLAT! THANK YOU!";
+            subText.innerHTML = "The Sun says: 'I feel hot now!'";
+        }
+    </script>
+</body>
+</html>
